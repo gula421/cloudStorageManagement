@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <link rel="stylesheet" type="text/css" media="all" th:href="@{/css/bootstrap.min.css}">
+
+        <title>Home</title>
+    </head>
+    <body class="p-3 mb-2 bg-light text-black">
+        <div class="container">
+            <div id="logoutDiv">
+                <form action="#" method="POST" th:action="@{/logout}">
+                    <button id="logout-btn" type="submit" class="btn btn-secondary float-right">Logout</button>
+                </form>
+            </div>
+            <div id="contentDiv" style="clear: right;">
+                <nav style="clear: right;">
+                    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                        <a class="nav-item nav-link"
+                           th:classappend="${#strings.equals(#session.getAttribute('activeTab'), 'file') ? 'active' : ''}"
+                           id="nav-files-tab" data-toggle="tab" href="#nav-files" role="tab" aria-controls="nav-files" aria-selected="true">Files</a>
+                        <a class="nav-item nav-link"
+                           th:classappend="${#strings.equals(#session.getAttribute('activeTab'), 'note') ? 'active' : ''}"
+                           id="nav-notes-tab" data-toggle="tab" href="#nav-notes" role="tab" aria-controls="nav-notes" aria-selected="false">Notes</a>
+                        <a class="nav-item nav-link"
+                           th:classappend="${#strings.equals(#session.getAttribute('activeTab'), 'credential') ? 'active' : ''}"
+                           id="nav-credentials-tab" data-toggle="tab" href="#nav-credentials" role="tab" aria-controls="nav-credentials" aria-selected="false">Credentials</a>
+                    </div>
+                </nav>
+
+                <div class="tab-content" id="nav-tabContent">
+                    <!------------                File tab               ------------>
+                    <div class="tab-pane fade"
+                         th:classappend="${#strings.equals(#session.getAttribute('activeTab'), 'file') ? 'show active' : ''}"
+                         id="nav-files" role="tabpanel" aria-labelledby="nav-files-tab">
+                        <form action="#" th:action="@{/upload-file}"  enctype="multipart/form-data" method="POST">
+                            <div class="container">
+                                <div class="row" style="margin: 1em;">
+                                    <div class="col-sm-2">
+                                        <label for="fileUpload">Upload a New File:</label>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <input type="file" class="form-control-file" id="fileUpload" name="fileUpload">
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <button id="file-upload-btn" type="submit" class="btn btn-dark">Upload</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        <div id="upload-error-msg" th:if="${#session.getAttribute('fileError')}" class="alert alert-danger">
+                            <span th:text="${#session.getAttribute('fileError')}"></span>
+                        </div>
+                        <div id="files-msg" th:if="${#session.getAttribute('fileMessage')}" class="alert alert-info hide-after-delay">
+                            <span th:text="${#session.getAttribute('fileMessage')}"></span>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="fileTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 20%" scope="col"></th>
+                                        <th style="width: 80%" scope="col">File Name</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+
+                                <tr th:if="${#lists.isEmpty(files)}">
+                                    <td></td>
+                                    <th id="no-file-text" scope="row">No Files found</th>
+                                </tr>
+
+                                <tr th:unless="${#lists.isEmpty(files)}" th:each="file : ${files}">
+                                    <td>
+
+                                        <a target="_blank" class="btn btn-success" th:href="@{/view-file(fileId=${file.fileId})}">View</a>
+
+                                        <a  id="file-delete-btn" class="btn btn-danger"
+                                            onclick="return confirm('Are you sure you want to delete this item?');"
+                                            th:href="@{/delete-file(fileId=${file.fileId})}">Delete</a>
+                                    </td>
+
+                                    <th id="filename" scope="row" th:text="${file.filename}">ExampleFile</th>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!----------                Note tab               ------------>
+                    <div class="tab-pane fade"
+                         th:classappend="${#strings.equals(#session.getAttribute('activeTab'), 'note') ? 'show active' : ''}"
+                         id="nav-notes" role="tabpanel" aria-labelledby="nav-notes-tab">
+                        <button id="add-note-btn" style="margin: 0.25em;" type="button" class="btn btn-info float-right" onclick="showNoteModal()">
+                            + Add a New Note
+                        </button>
+
+                        <div id="note-error-msg" th:if="${#session.getAttribute('noteError')}" class="alert alert-danger w-50 hide-after-delay">
+                            <span th:text="${#session.getAttribute('noteError')}"></span>
+                        </div>
+                        <div id="note-msg" th:if="${#session.getAttribute('noteMessage')}" class="alert alert-info w-50 hide-after-delay">
+                            <span th:text="${#session.getAttribute('noteMessage')}"></span>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="userTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 20%" scope="col"></th>
+                                        <th style="width: 20%" scope="col">Title</th>
+                                        <th style="width: 60%" scope="col">Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+
+                                <tr th:if="${#lists.isEmpty(notes)}">
+                                    <td></td>
+                                    <th id="no-note-text" scope="row">No Notes found</th>
+                                </tr>
+                                    <tr th:unless="${#lists.isEmpty(notes)}" class="note-row" th:each="note : ${notes}">
+                                        <td>
+                                            <button type="button" class="btn btn-success edit-note-btn"
+                                                    th:attr="onclick=|showNoteModal('${note.noteId}', '${note.noteTitle}', '${note.noteDescriptionForJS}')|">
+                                                Edit
+                                            </button>
+                                            <a class="btn btn-danger note-delete" th:action="@{/delete-note}"
+                                               th:href="@{/delete-note(noteId=${note.noteId})}"
+                                               onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
+                                        </td>
+                                        <th scope="row" class="note-title" th:text="${note.noteTitle}">Example Note Title</th>
+                                        <td class="note-description" th:text="${note.noteDescription}">Example Note Description </td>
+
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+
+                        <div class="modal fade" id="noteModal" tabindex="-1" role="dialog" aria-labelledby="noteModalLabel" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="noteModalLabel">Note</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form action="#" method="POST" th:action="@{/save-note}">
+                                            <input type="hidden" name="noteId" id="note-id">
+                                            <div class="form-group">
+                                                <label for="note-title" class="col-form-label">Title</label>
+                                                <input type="text" name= "noteTitle"
+                                                       class="form-control" id="note-title" maxlength="20" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="note-description" class="col-form-label">Description</label>
+                                                <textarea class="form-control" name="noteDescription"
+                                                          id="note-description" rows="5" maxlength="1000" required></textarea>
+                                            </div>
+                                            <button id="noteSubmit" type="submit" class="d-none"></button>
+                                        </form>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                        <button id="note-save" type="button" class="btn btn-primary" onclick="$('#noteSubmit').click();">Save changes</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!------------                Credential tab               ------------>
+                    <div class="tab-pane fade"
+                         th:classappend="${#strings.equals(#session.getAttribute('activeTab'), 'credential') ? 'show active' : ''}"
+                         id="nav-credentials" role="tabpanel" aria-labelledby="nav-credentials-tab">
+                        <button id="add-credential-btn" style="margin: 0.25em;" type="button" class="btn btn-info float-right" onclick="showCredentialModal()">
+                            + Add a New Credential
+                        </button>
+
+                        <div id="credential-error-msg" th:if="${#session.getAttribute('credentialError')}" class="alert alert-danger w-50 hide-after-delay">
+                            <span th:text="${#session.getAttribute('credentialError')}"></span>
+                        </div>
+                        <div id="credential-msg" th:if="${#session.getAttribute('credentialMessage')}" class="alert alert-info w-50 hide-after-delay">
+                            <span th:text="${#session.getAttribute('credentialMessage')}"></span>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="credentialTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 20%" scope="col"></th>
+                                        <th style="width: 35%" scope="col">URL</th>
+                                        <th style="width: 20%" scope="col">Username</th>
+                                        <th style="width: 25%" scope="col">Password</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+
+                                <tr th:if="${#lists.isEmpty(credentials)}">
+                                    <td></td>
+                                    <th id="no-credential-text" scope="row">No Credential found</th>
+                                </tr>
+
+                                <tr th:unless="${#lists.isEmpty(credentials)}" class="row-credential" th:each="c: ${credentials}">
+                                    <td>
+                                        <button type="button" class="btn btn-success edit-credential-btn"
+                                        th:attr="onclick=|showCredentialModal('${c.credentialId}', '${c.url}', '${c.username}', '${c.rawPassword}')|">
+                                            Edit
+                                        </button>
+                                        <a class="btn btn-danger credential-delete"
+                                           th:action="@{/delete-credential}"
+                                           th:href="@{/delete-credential(credentialId=${c.credentialId})}"
+                                           onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
+                                    </td>
+                                    <th scope="row" class="credential-url" th:text="${c.url}">Example Credential URL</th>
+                                    <td class="credential-username" th:text="${c.username}">Example Credential Username</td>
+                                    <td class="credential-password" th:text="${c.password}">Example Credential Password</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="modal fade" id="credentialModal" tabindex="-1" role="dialog" aria-labelledby="credentialModalLabel" aria-hidden="true">
+                            <div class="modal-dialog" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="credentialModalLabel">Credential</h5>
+                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+
+
+                                    <div class="modal-body">
+                                        <form action="#" method="POST" th:action="@{/save-credential}">
+                                            <input type="hidden" name="credentialId" id="credential-id">
+                                            <div class="form-group">
+                                                <label for="note-title" class="col-form-label">URL</label>
+                                                <input type="text" name= "url" class="form-control" id="credential-url" maxlength="100" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="note-title" class="col-form-label">Username</label>
+                                                <input type="text" name= "username" class="form-control" id="credential-username" maxlength="30" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="note-title" class="col-form-label">Password</label>
+                                                <input type="text" name= "password" class="form-control" id="credential-password" maxlength="30" required>
+                                            </div>
+                                            <button id="credentialSubmit" type="submit" class="d-none"></button>
+                                        </form>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                        <button id="save-credential-btn" type="button" class="btn btn-primary" onclick="$('#credentialSubmit').click();">Save changes</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script th:src="@{/js/jquery-slim.min.js}"></script>
+        <script th:src="@{/js/popper.min.js}"></script>
+        <script th:src="@{/js/bootstrap.min.js}"></script>
+
+        <!--For opening the note modal-->
+        <script type="text/javascript">
+        // for checking file size before uplaod
+        $('#fileUpload').bind('change', function() {
+            //this.files[0].size gets the size of your file.
+            if(this.files[0].size>2000000){
+            alert("This file size is too big. Max size 2MB is allowed.");
+            this.value = '';
+            }
+        });
+
+            // For opening the note modal
+            function showNoteModal(noteId, noteTitle, noteDescription) {
+                $('#note-id').val(noteId ? noteId : '');
+                $('#note-title').val(noteTitle ? noteTitle : '');
+                $('#note-description').val(noteDescription ? noteDescription : '');
+                $('#noteModal').modal('show');
+            }
+
+            // For opening the credentials modal
+            function showCredentialModal(credentialId, url, username, password) {
+                $('#credential-id').val(credentialId ? credentialId : '');
+                $('#credential-url').val(url ? url : '');
+                $('#credential-username').val(username ? username : '');
+                $('#credential-password').val(password ? password : '');
+                $('#credentialModal').modal('show');
+            }
+        </script>
+    </body>
+</html>
